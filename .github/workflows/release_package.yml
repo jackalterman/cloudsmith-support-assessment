@@ -41,10 +41,15 @@ jobs:
         run: ls -la dist/
         shell: bash
 
-      - name: Set up Cloudsmith CLI
-        run: pip install --upgrade "cloudsmith-cli>=0.56.0"
-        shell: bash
-
+      - name: Install Cloudsmith CLI
+        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.0
+        with:
+          oidc-namespace: 'interview-jack-alterman'
+          oidc-repository: 'interview'
+          oidc-service-slug: 'github-actions'
+      - name: Verify Cloudsmith CLI Installation
+        run: |
+          cloudsmith --version
       - name: Push package to Cloudsmith
         run: |
           if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then

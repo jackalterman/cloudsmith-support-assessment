@@ -40,7 +40,7 @@ jobs:
         shell: bash
 
       - name: Set up Cloudsmith CLI
-        run: pip install --upgrade cloudsmith-cli
+        run: pip install --upgrade cloudsmith-cli@latest
         shell: bash
 
       - name: Push package to Cloudsmith

@@ -16,6 +16,7 @@ env:
 permissions:
   contents: read
   actions: read
+  id-token: write
 
 jobs:
   publish:
@@ -36,6 +37,10 @@ jobs:
 
       - name: List directory contents
         run: ls -la dist/
+        shell: bash
+
+      - name: Set up Cloudsmith CLI
+        run: pip install --upgrade cloudsmith-cli
         shell: bash
 
       - name: Push package to Cloudsmith

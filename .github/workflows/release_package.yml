@@ -11,7 +11,7 @@ on:
 env:
   CLOUDSMITH_NAMESPACE: "interview-jack-alterman"
   CLOUDSMITH_REPOSITORY: "interview"
-  CLOUDSMITH_SERVICE_SLUG: "github-actions"
+  CLOUDSMITH_SERVICE_SLUG: "github-connector"
 
 permissions:
   contents: read

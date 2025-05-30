@@ -45,7 +45,6 @@ jobs:
         uses: cloudsmith-io/cloudsmith-cli-action@v1.0.0
         with:
           oidc-namespace: 'interview-jack-alterman'
-          oidc-repository: 'interview'
           oidc-service-slug: 'github-actions'
       - name: Verify Cloudsmith CLI Installation
         run: |

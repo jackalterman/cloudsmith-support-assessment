@@ -9,9 +9,9 @@ on:
       - main
 
 env:
-  CLOUDSMITH_NAMESPACE: "interview-jack-alterman"
+  CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
   CLOUDSMITH_REPOSITORY: "interview"
-  CLOUDSMITH_SERVICE_SLUG: "github-oidc-connector"
+  CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
 
 permissions:
   contents: read
@@ -27,8 +27,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
-        
+        uses: actions/checkout@v4        
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
@@ -37,9 +36,6 @@ jobs:
           repository: ${{ github.repository }}
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
-
-
-
       - name: List directory contents
         run: ls -la dist/
         shell: bash

@@ -53,7 +53,7 @@ jobs:
 
           # First, let's verify the package exists by listing it
           echo "Verifying package exists..."
-          cloudsmith list packages ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "slug_perm:${{ steps.package-info.outputs.package_identifier }}" -F json
+          cloudsmith list packages ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "filename:${{ steps.package-info.outputs.package.filename }}" -F json
           
           # Add the ready-for-production tag to the package
           cloudsmith tag add \

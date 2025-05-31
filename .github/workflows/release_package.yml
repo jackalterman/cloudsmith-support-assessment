@@ -11,7 +11,7 @@ on:
 env:
   CLOUDSMITH_NAMESPACE: "interview-jack-alterman"
   CLOUDSMITH_REPOSITORY: "interview"
-  CLOUDSMITH_SERVICE_SLUG: "github-connector"
+  CLOUDSMITH_SERVICE_SLUG: "github-oidc-connector"
 
 permissions:
   contents: read
@@ -42,10 +42,10 @@ jobs:
         shell: bash
 
       - name: Install Cloudsmith CLI
-        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.0
+        uses: cloudsmith-io/cloudsmith-github-action@v1
         with:
           oidc-namespace: 'interview-jack-alterman'
-          oidc-service-slug: 'github-connector'
+          oidc-service-slug: 'github-oidc-connector'
       - name: Verify Cloudsmith CLI Installation
         run: |
           cloudsmith --version

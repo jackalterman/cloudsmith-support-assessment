@@ -50,6 +50,10 @@ jobs:
       - name: Tag package as ready-for-production
         run: |
           echo "Tagging package ${{ steps.package-info.outputs.package_identifier }} with 'ready-for-production'"
+
+          # First, let's verify the package exists by listing it
+          echo "Verifying package exists..."
+          cloudsmith list packages ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "slug_perm:$PACKAGE_ID" -F json
           
           # Add the ready-for-production tag to the package
           cloudsmith tag add \

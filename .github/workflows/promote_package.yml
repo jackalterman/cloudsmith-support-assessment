@@ -1,12 +1,8 @@
 name: Promote Python Package
 
 on:
-  workflow_dispatch:
-    inputs:
-      package_version:
-        description: 'Package version to promote (e.g., 0.0.1)'
-        required: true
-        type: string
+  repository_dispatch:
+    types: [cloudsmith.package.synchronized]
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
@@ -30,26 +26,90 @@ jobs:
           oidc-namespace: ${{ env.CLOUDSMITH_NAMESPACE }}
           oidc-service-slug: ${{ env.CLOUDSMITH_SERVICE_SLUG }}
 
-      - name: Get package identifier and promote
+      # - name: Get package identifier and promote
+      #   run: |
+      #     # Query for the package and get its identifier
+      #     PACKAGE_QUERY="filename:${PACKAGE_NAME}-${{ github.event.inputs.package_version }}.tar.gz"
+      #     echo "Searching for package with query: $PACKAGE_QUERY"
+          
+      #     PACKAGE_DATA=$(cloudsmith list package ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "$PACKAGE_QUERY" -F json)
+          
+      #     # Extract the identifier_perm using jq
+      #     IDENTIFIER=$(echo "$PACKAGE_DATA" | jq -r '.data[0].identifier_perm')
+          
+      #     if [ -z "$IDENTIFIER" ] || [ "$IDENTIFIER" = "null" ]; then
+      #       echo "Failed to find package identifier"
+      #       exit 1
+      #     fi
+          
+      #     echo "Found package identifier: $IDENTIFIER"
+          
+      #     # Promote package using the identifier
+      #     cloudsmith mv --yes \
+      #       ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$IDENTIFIER \
+      #       ${{ env.CLOUDSMITH_PRODUCTION_REPO }}
+
+      - name: Extract package info from webhook payload
+        id: package-info
         run: |
-          # Query for the package and get its identifier
-          PACKAGE_QUERY="filename:${PACKAGE_NAME}-${{ github.event.inputs.package_version }}.tar.gz"
-          echo "Searching for package with query: $PACKAGE_QUERY"
+          echo "Webhook payload received:"
+          echo '${{ toJson(github.event.client_payload) }}'
           
-          PACKAGE_DATA=$(cloudsmith list package ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "$PACKAGE_QUERY" -F json)
+          # Extract package information from webhook payload
+          PACKAGE_IDENTIFIER="${{ github.event.client_payload.package_identifier }}"
+          PACKAGE_VERSION="${{ github.event.client_payload.package_version }}"
           
-          # Extract the identifier_perm using jq
-          IDENTIFIER=$(echo "$PACKAGE_DATA" | jq -r '.data[0].identifier_perm')
-          
-          if [ -z "$IDENTIFIER" ] || [ "$IDENTIFIER" = "null" ]; then
-            echo "Failed to find package identifier"
+          if [ -z "$PACKAGE_IDENTIFIER" ] || [ "$PACKAGE_IDENTIFIER" = "null" ]; then
+            echo "Package identifier not found in webhook payload"
             exit 1
           fi
           
-          echo "Found package identifier: $IDENTIFIER"
+          echo "package_identifier=$PACKAGE_IDENTIFIER" >> $GITHUB_OUTPUT
+          echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "Found package identifier: $PACKAGE_IDENTIFIER"
+        shell: bash
+
+      - name: Tag package as ready-for-production
+        run: |
+          echo "Tagging package ${{ steps.package-info.outputs.package_identifier }} with 'ready-for-production'"
           
-          # Promote package using the identifier
-          cloudsmith mv --yes \
-            ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$IDENTIFIER \
-            ${{ env.CLOUDSMITH_PRODUCTION_REPO }}
+          # Add the ready-for-production tag to the package
+          cloudsmith tag add \
+            ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/${{ steps.package-info.outputs.package_identifier }} \
+            ready-for-production
+          
+          echo "Successfully tagged package with 'ready-for-production'"
+        shell: bash
+
+      - name: Promote packages with ready-for-production tag
+        run: |
+          # Query for all packages tagged with ready-for-production
+          PACKAGE_QUERY="tag:ready-for-production"
+          echo "Searching for packages with query: $PACKAGE_QUERY"
+          
+          PACKAGE_DATA=$(cloudsmith list package ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "$PACKAGE_QUERY" -F json)
+          
+          # Check if any packages were found
+          PACKAGE_COUNT=$(echo "$PACKAGE_DATA" | jq -r '.data | length')
+          
+          if [ "$PACKAGE_COUNT" -eq 0 ]; then
+            echo "No packages found with 'ready-for-production' tag"
+            exit 0
+          fi
+          
+          echo "Found $PACKAGE_COUNT package(s) with 'ready-for-production' tag"
+          
+          # Extract all package identifiers and promote them
+          echo "$PACKAGE_DATA" | jq -r '.data[].identifier_perm' | while read -r IDENTIFIER; do
+            if [ -n "$IDENTIFIER" ] && [ "$IDENTIFIER" != "null" ]; then
+              echo "Promoting package: $IDENTIFIER"
+              
+              # Promote package using the identifier
+              cloudsmith mv --yes \
+                ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$IDENTIFIER \
+                ${{ env.CLOUDSMITH_PRODUCTION_REPO }}
+              
+              echo "Successfully promoted package: $IDENTIFIER"
+            fi
+          done
         shell: bash

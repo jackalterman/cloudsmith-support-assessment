@@ -28,12 +28,17 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+        
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: python-package
           path: dist
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+
 
       - name: List directory contents
         run: ls -la dist/
